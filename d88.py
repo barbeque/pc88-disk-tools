@@ -73,8 +73,9 @@ with open(sys.argv[1], 'rb') as f:
         track_header = sector_header_unpack(raw)
         #print track_header
         (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
+        print 'Cylinder', c, 'Head', h, 'Sector', r
         print 'Sector size (in bytes):', sector_size_to_bytes(sector_size)
         print 'Density:', density_to_string(density)
-        break # FIXME
+        #break # FIXME
 
         i += 1
