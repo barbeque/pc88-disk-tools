@@ -18,6 +18,9 @@ d88_header_unpack = Struct(d88_header_fmt).unpack_from
 #	BYTE density, del, stat;
 #	BYTE rsrv[5];
 #	WORD size;
+track_header_fmt = '<ccccsccc5cs'
+track_header_len = calcsize(track_header_fmt)
+track_header_unpack = Struct(track_header_fmt).unpack_from
 
 def usage():
     print sys.argv[0] + " [d88 file]"
