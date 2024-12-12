@@ -24,13 +24,6 @@ sector_header_fmt = '<BBBBsBBB5sI'
 sector_header_len = calcsize(sector_header_fmt)
 sector_header_unpack = Struct(sector_header_fmt).unpack_from
 
-def usage():
-    print(sys.argv[0] + " [d88 file]")
-
-if len(sys.argv) < 2:
-    usage()
-    sys.exit(1)
-
 def sector_size_to_bytes(sector_size):
     if sector_size == 0:
         return 128
@@ -96,6 +89,10 @@ argp.add_option('-i', '--get-info', action='store_true', help="Print info on the
 argp.add_option('-s', '--single-sided', action='store_true', help='Convert to a single-sided disk image')
 argp.add_option('-r', '--rename', help='Rename the image friendly name to something else')
 argp.add_option('-o', '--output', dest='output_path', help='Where the modified disk image will be written to', default='output.d88')
+
+if len(sys.argv) < 2:
+    argp.print_help()
+    sys.exit(1)
 
 (options, args) = argp.parse_args()
 
