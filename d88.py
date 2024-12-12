@@ -85,7 +85,7 @@ def get_info(d88_path):
 # Figure out what mode to be in
 argp = OptionParser()
 
-argp.add_option('-i', '--get-info', action='store_const', dest='mode', const='get-info', help="Print info on the disk image to the console")
+argp.add_option('-i', '--get-info', action='store_const', dest='mode', default='get-info', const='get-info', help="Print info on the disk image to the console")
 argp.add_option('-s', '--single-sided', action='store_const', dest='mode', const='single-sided', help='Convert to a single-sided disk image')
 argp.add_option('-r', '--rename', action='store_const', dest='mode', const='rename', help='Rename the image friendly name to something else')
 argp.add_option('-o', '--output', dest='output_path', help='Where the modified disk image will be written to', default='output.d88')
@@ -127,6 +127,6 @@ if options.mode == 'single-sided':
     single_sided_conversion(args[0], options.output_path)
 elif options.mode == 'rename':
     rename_disk_image(args[0], options.rename, options.output_path)
-else:
+elif options.mode == 'get-info':
     # default to get_info
     get_info(args[0])
