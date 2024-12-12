@@ -60,8 +60,6 @@ def get_info(d88_path):
         d88_header = d88_header_unpack(raw)
         (title, rsrv, protect, type, size) = d88_header
 
-        # TODO: change type to 0x40
-
         tracks = array.array('I')
         tracks.fromfile(f, 164) # trkptr structure
         tracks = tracks.tolist()
