@@ -24,7 +24,7 @@ sector_header_len = calcsize(sector_header_fmt)
 sector_header_unpack = Struct(sector_header_fmt).unpack_from
 
 def usage():
-    print sys.argv[0] + " [d88 file]"
+    print(sys.argv[0] + " [d88 file]")
 
 if len(sys.argv) < 2:
     usage()
@@ -55,27 +55,27 @@ with open(sys.argv[1], 'rb') as f:
     d88_header = d88_header_unpack(raw)
     (title, rsrv, protect, type, size) = d88_header
     tracks = array.array('I')
-    tracks.read(f, 164) # trkptr structure
+    tracks.fromfile(f, 164) # trkptr structure
     tracks = tracks.tolist()
-    print 'Filename:', sys.argv[1]
-    print 'Title:', title
+    print('Filename:', sys.argv[1])
+    print('Title:', title)
     #print 'Tracks:', tracks
-    actual_tracks = filter(lambda x: x > 0, tracks)
-    print 'Tracks actually in use:', len(actual_tracks)
+    actual_tracks = list(filter(lambda x: x > 0, tracks))
+    print('Tracks actually in use:', len(actual_tracks))
 
     # i suspect it goes TRK - SEC and track headers are the same
     i = 0
     for track_origin in actual_tracks:
-        print 'Track #', i
+        print('Track #', i)
 
         f.seek(track_origin)
         raw = f.read(sector_header_len)
         track_header = sector_header_unpack(raw)
         #print track_header
         (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
-        print 'Cylinder', c, 'Head', h, 'Sector', r
-        print 'Sector size (in bytes):', sector_size_to_bytes(sector_size)
-        print 'Density:', density_to_string(density)
+        print('Cylinder', c, 'Head', h, 'Sector', r)
+        print('Sector size (in bytes):', sector_size_to_bytes(sector_size))
+        print('Density:', density_to_string(density))
         #break # FIXME
 
         i += 1
