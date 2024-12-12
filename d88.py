@@ -94,6 +94,7 @@ argp = OptionParser()
 
 argp.add_option('-i', '--get-info', action='store_true', help="Print info on the disk image to the console")
 argp.add_option('-s', '--single-sided', action='store_true', help='Convert to a single-sided disk image')
+argp.add_option('-r', '--rename', help='Rename the image friendly name to something else')
 argp.add_option('-o', '--output', dest='output_path', help='Where the modified disk image will be written to', default='output.d88')
 
 (options, args) = argp.parse_args()
@@ -108,10 +109,27 @@ def single_sided_conversion(d88_path, output_path):
 
     print('Written to', output_path)
 
-print(options)
+def rename_disk_image(d88_path, new_name, output_path):
+    # maximum length check
+    if len(new_name) < 1 or len(new_name) > 17:
+        print('The friendly name of a disk image must be between 1 and 17 characters long, inclusive.')
+        sys.exit(1)
+    else:
+        # do it but pad it with zeroes
+        with open(d88_path, 'rb') as f:
+            image_data = bytearray(f.read())
+        for i in range(18):
+            if i >= len(new_name):
+                image_data[i] = 0x00
+            else:
+                image_data[i] = ord(new_name[i])
+        with open(output_path, 'wb') as f:
+            f.write(image_data)
 
 if options.single_sided:
     single_sided_conversion(args[0], options.output_path)
+elif options.rename:
+    rename_disk_image(args[0], options.rename, options.output_path)
 else:
     # default to get_info
     get_info(args[0])
