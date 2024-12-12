@@ -1,4 +1,5 @@
 from struct import unpack, calcsize, Struct
+from optparse import OptionParser
 import sys
 import array
 
@@ -49,33 +50,68 @@ def density_to_string(density):
         return "high"
     else:
         raise "Unknown density " + density + ", could be single?"
+    
+def get_info(d88_path):
+    """
+    Print out info on a disk image to the console
+    """
+    with open(d88_path, 'rb') as f:
+        raw = f.read(d88_header_len)
+        d88_header = d88_header_unpack(raw)
+        (title, rsrv, protect, type, size) = d88_header
 
-with open(sys.argv[1], 'rb') as f:
-    raw = f.read(d88_header_len)
-    d88_header = d88_header_unpack(raw)
-    (title, rsrv, protect, type, size) = d88_header
-    tracks = array.array('I')
-    tracks.fromfile(f, 164) # trkptr structure
-    tracks = tracks.tolist()
-    print('Filename:', sys.argv[1])
-    print('Title:', title)
-    #print 'Tracks:', tracks
-    actual_tracks = list(filter(lambda x: x > 0, tracks))
-    print('Tracks actually in use:', len(actual_tracks))
+        # TODO: change type to 0x40
 
-    # i suspect it goes TRK - SEC and track headers are the same
-    i = 0
-    for track_origin in actual_tracks:
-        print('Track #', i)
+        tracks = array.array('I')
+        tracks.fromfile(f, 164) # trkptr structure
+        tracks = tracks.tolist()
+        print('Filename:', sys.argv[1])
+        print('Title:', title)
+        #print 'Tracks:', tracks
+        actual_tracks = list(filter(lambda x: x > 0, tracks))
+        print('Tracks actually in use:', len(actual_tracks))
 
-        f.seek(track_origin)
-        raw = f.read(sector_header_len)
-        track_header = sector_header_unpack(raw)
-        #print track_header
-        (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
-        print('Cylinder', c, 'Head', h, 'Sector', r)
-        print('Sector size (in bytes):', sector_size_to_bytes(sector_size))
-        print('Density:', density_to_string(density))
-        #break # FIXME
+        # i suspect it goes TRK - SEC and track headers are the same
+        i = 0
+        for track_origin in actual_tracks:
+            print('Track #', i)
 
-        i += 1
+            f.seek(track_origin)
+            raw = f.read(sector_header_len)
+            track_header = sector_header_unpack(raw)
+            #print track_header
+            (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
+            print('Cylinder', c, 'Head', h, 'Sector', r)
+            print('Sector size (in bytes):', sector_size_to_bytes(sector_size))
+            print('Density:', density_to_string(density))
+            #break # FIXME
+
+            i += 1
+
+    
+# Figure out what mode to be in
+argp = OptionParser()
+
+argp.add_option('-i', '--get-info', action='store_true', help="Print info on the disk image to the console")
+argp.add_option('-s', '--single-sided', action='store_true', help='Convert to a single-sided disk image')
+argp.add_option('-o', '--output', dest='output_path', help='Where the modified disk image will be written to', default='output.d88')
+
+(options, args) = argp.parse_args()
+
+def single_sided_conversion(d88_path, output_path):
+    with open(d88_path, 'rb') as f:
+        image_data = bytearray(f.read())
+
+    image_data[0x1b] = 0x40
+    with open(output_path, 'wb') as f:
+        f.write(image_data)
+
+    print('Written to', output_path)
+
+print(options)
+
+if options.single_sided:
+    single_sided_conversion(args[0], options.output_path)
+else:
+    # default to get_info
+    get_info(args[0])
