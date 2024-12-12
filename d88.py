@@ -69,6 +69,7 @@ def get_info(d88_path):
         actual_tracks = list(filter(lambda x: x > 0, tracks))
         print('Tracks actually in use:', len(actual_tracks))
         print('Type:', hex(type))
+        print('Size:', size)
 
         # i suspect it goes TRK - SEC and track headers are the same
         i = 0
