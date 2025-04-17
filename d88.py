@@ -1,4 +1,5 @@
 from struct import unpack, calcsize, Struct
+from enum import Enum
 from optparse import OptionParser
 import sys
 import array
@@ -23,6 +24,13 @@ d88_header_unpack = Struct(d88_header_fmt).unpack_from
 sector_header_fmt = '<BBBBsBBB5sI'
 sector_header_len = calcsize(sector_header_fmt)
 sector_header_unpack = Struct(sector_header_fmt).unpack_from
+
+class DiskType(Enum):
+    DiskType_2D = 0x00
+    DiskType_2DD = 0x10
+    DiskType_2HD = 0x20
+    DiskType_1D = 0x30
+    DiskType_1DD = 0x40
 
 def sector_size_to_bytes(sector_size):
     if sector_size == 0:
@@ -63,15 +71,15 @@ def get_info(d88_path):
         print('Tracks actually in use:', len(actual_tracks))
         print('Type:', hex(type))
 
-        if type == 0x00:
+        if type == DiskType.DiskType_2D:
             print('\t2D')
-        elif type == 0x10:
+        elif type == DiskType.DiskType_2DD:
             print('\t2DD')
-        elif type == 0x20:
+        elif type == DiskType.DiskType_2HD:
             print('\t2HD')
-        elif type == 0x30:
+        elif type == DiskType.DiskType_1D:
             print('\t1D')
-        elif type == 0x40:
+        elif type == DiskType.DiskType_1DD:
             print('\t1DD')
         else:
             print('\tWARNING: unknown type')
@@ -100,7 +108,8 @@ def get_info(d88_path):
 argp = OptionParser()
 
 argp.add_option('-i', '--get-info', action='store_const', dest='mode', default='get-info', const='get-info', help="Print info on the disk image to the console")
-argp.add_option('-s', '--single-sided', action='store_const', dest='mode', const='single-sided', help='Convert to a single-sided disk image')
+argp.add_option('-1', '--1d', action='store_const', dest='mode', const='1d', help='Change disk type byte to indicate a single-sided, low density (1D) disk image')
+argp.add_option('-d', '--1dd', action='store_const', dest='mode', const='1dd', help='Change disk type byte to indicate a single-sided, double density (1DD) disk image')
 argp.add_option('-r', '--rename', help='Rename the image friendly name to something else')
 argp.add_option('-o', '--output', dest='output_path', help='Where the modified disk image will be written to', default='output.d88')
 
@@ -110,15 +119,15 @@ if len(sys.argv) < 2:
 
 (options, args) = argp.parse_args()
 
-def single_sided_conversion(d88_path, output_path):
+def change_disk_type_byte(d88_path, output_path, new_disk_type = DiskType.DiskType_1DD):
     with open(d88_path, 'rb') as f:
         image_data = bytearray(f.read())
 
-    image_data[0x1b] = 0x40
+    image_data[0x1b] = new_disk_type
     with open(output_path, 'wb') as f:
         f.write(image_data)
 
-    print('Written to', output_path)
+    print(new_disk_type, ' converted image written to', output_path)
 
 def rename_disk_image(d88_path, new_name, output_path):
     # maximum length check
@@ -139,8 +148,10 @@ def rename_disk_image(d88_path, new_name, output_path):
 
 if options.rename:
     rename_disk_image(args[0], options.rename, options.output_path)
-elif options.mode == 'single-sided':
-    single_sided_conversion(args[0], options.output_path)
+elif options.mode == '1d':
+    change_disk_type_byte(args[0], options.output_path, DiskType.DiskType_1D)
+elif options.mode == '1dd':
+    change_disk_type_byte(args[0], options.output_path, DiskType.DiskType_1DD)
 elif options.mode == 'get-info':
     # default to get_info
     get_info(args[0])
