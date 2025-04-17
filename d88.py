@@ -62,6 +62,20 @@ def get_info(d88_path):
         actual_tracks = list(filter(lambda x: x > 0, tracks))
         print('Tracks actually in use:', len(actual_tracks))
         print('Type:', hex(type))
+
+        if type == 0x00:
+            print('\t2D')
+        elif type == 0x10:
+            print('\t2DD')
+        elif type == 0x20:
+            print('\t2HD')
+        elif type == 0x30:
+            print('\t1D')
+        elif type == 0x40:
+            print('\t1DD')
+        else:
+            print('\tWARNING: unknown type')
+
         print('Size:', size)
 
         # i suspect it goes TRK - SEC and track headers are the same
