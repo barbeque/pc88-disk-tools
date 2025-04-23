@@ -111,7 +111,7 @@ def get_info(d88_path):
         (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
         boot_sector_data = f.read(sector_size_to_bytes(sector_size))  # this seems to be off by one?
         print('Boot sector fingerprint:', boot_sector_data[:0xff])
-        # PC-8801: load 256 bytes into $c000 to $cfff, execute them
+        # PC-8801: load 256 bytes into $c000 to $cfff, execute them. something special for N-BASIC?
         # X1: https://boukichi.github.io/HuDisk/HuBASIC_Format.html
         # PC-6001: RXR or SYS or IPL???
         if boot_sector_data[:3] == b'SYS' or boot_sector_data[:3] == b'RXR' or boot_sector_data[:3] == b'IPL':
