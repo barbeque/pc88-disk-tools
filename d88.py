@@ -1,5 +1,5 @@
 from struct import unpack, calcsize, Struct
-from enum import Enum
+from enum import IntEnum
 from optparse import OptionParser
 import sys
 import array
@@ -25,7 +25,7 @@ sector_header_fmt = '<BBBBsBBB5sI'
 sector_header_len = calcsize(sector_header_fmt)
 sector_header_unpack = Struct(sector_header_fmt).unpack_from
 
-class DiskType(Enum):
+class DiskType(IntEnum):
     DiskType_2D = 0x00
     DiskType_2DD = 0x10
     DiskType_2HD = 0x20
@@ -119,6 +119,15 @@ if len(sys.argv) < 2:
 
 (options, args) = argp.parse_args()
 
+"""
+Change the disk-type byte of the image.
+
+Does not add or remove tracks and sides; this just changes the byte in the header.
+
+Many images are incorrectly described as "1D" (1 sided, 40 track) when they are actually
+"1DD" (1 sided, 70-80 track.) This causes problems with the HxC utility and probably
+other disk tools as well. Use with caution and operate on a backup.
+"""
 def change_disk_type_byte(d88_path, output_path, new_disk_type = DiskType.DiskType_1DD):
     with open(d88_path, 'rb') as f:
         image_data = bytearray(f.read())
