@@ -110,14 +110,15 @@ def get_info(d88_path):
         track_header = sector_header_unpack(raw)
         (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
         boot_sector_data = f.read(sector_size_to_bytes(sector_size))  # this seems to be off by one?
-        print('Cylinder', c, 'Head', h, 'Sector', r) 
-        print('Sector size (in bytes):', sector_size_to_bytes(sector_size))
-        print(boot_sector_data[:10])
+        print('Boot sector fingerprint:', boot_sector_data[:10])
         # PC-8801: load 256 bytes into $c000 to $cfff, execute them
         # X1: https://boukichi.github.io/HuDisk/HuBASIC_Format.html
         # PC-6001: RXR or SYS or IPL???
         if boot_sector_data[:3] == b'SYS' or boot_sector_data[:3] == b'RXR' or boot_sector_data[:3] == b'IPL':
-            print('Potentially NEC PC-6001/PC-6601')
+            print('\tPotentially NEC PC-6001/PC-6601')
+        if boot_sector_data[0] == 0x01:
+            if boot_sector_data[0x0e:0x0e + 3] == b'Sys':
+                print('\tPotentially Sharp X1 bootable')
     
 # Figure out what mode to be in
 argp = OptionParser()
