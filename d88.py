@@ -104,12 +104,30 @@ def get_info(d88_path):
 
             i += 1
 
-        # try to fingerprint the boot sector
+"""
+Dumps the first sector of the disk to a file for further analysis.
+
+Does some basic fingerprinting of the disk to try and figure out what system it came from.
+"""
+def dump_boot_sector(d88_path, output_path = 'boot-sector.bin'):
+    with open(d88_path, 'rb') as f:
+        raw = f.read(d88_header_len)
+        d88_header = d88_header_unpack(raw)
+        (_title, _rsrv, _protect, _type, _size) = d88_header
+
+        tracks = array.array('I')
+        tracks.fromfile(f, 164) # trkptr structure
+        tracks = tracks.tolist()
+        actual_tracks = list(filter(lambda x: x > 0, tracks))
+
+        # jump to first track
         f.seek(actual_tracks[0])
+
+        # try to fingerprint the boot sector
         raw = f.read(sector_header_len)
         track_header = sector_header_unpack(raw)
         (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
-        boot_sector_data = f.read(sector_size_to_bytes(sector_size))  # this seems to be off by one?
+        boot_sector_data = f.read(sector_size_to_bytes(sector_size))
         print('Boot sector fingerprint:', boot_sector_data[:0xff])
         # PC-8801: load 256 bytes into $c000 to $cfff, execute them. something special for N-BASIC?
         # X1: https://boukichi.github.io/HuDisk/HuBASIC_Format.html
@@ -122,16 +140,20 @@ def get_info(d88_path):
                 x1_label = boot_sector_data[1 : 1 + 13].decode('utf-8')
                 print(f'\tPotentially Sharp X1 bootable (label: "{x1_label}")')
 
-# TODO: write a boot sector dumper so we can pass it into z80dasm
+        # anyway dump the entire thing now
+        with open(output_path, 'wb') as o:
+            o.write(boot_sector_data)
+            print(f'Wrote {len(boot_sector_data)} bytes of boot sector to dump file "{output_path}"')
     
 # Figure out what mode to be in
 argp = OptionParser()
 
 argp.add_option('-i', '--get-info', action='store_const', dest='mode', default='get-info', const='get-info', help="Print info on the disk image to the console")
+argp.add_option('-b', '--boot-dump', action='store_const', dest='mode', const='dump-boot-sector', help='Analyze the boot sector and extract it to a file')
 argp.add_option('-1', '--1d', action='store_const', dest='mode', const='1d', help='Change disk type byte to indicate a single-sided, low density (1D) disk image')
 argp.add_option('-d', '--1dd', action='store_const', dest='mode', const='1dd', help='Change disk type byte to indicate a single-sided, double density (1DD) disk image')
 argp.add_option('-r', '--rename', help='Rename the image friendly name to something else')
-argp.add_option('-o', '--output', dest='output_path', help='Where the modified disk image will be written to', default='output.d88')
+argp.add_option('-o', '--output', dest='output_path', help='Where the output of the process (modified disk, boot sector, etc) will be written to', default='output.d88')
 
 if len(sys.argv) < 2:
     argp.print_help()
@@ -177,6 +199,14 @@ def rename_disk_image(d88_path, new_name, output_path):
 
 if options.rename:
     rename_disk_image(args[0], options.rename, options.output_path)
+elif options.mode == 'dump-boot-sector':
+    # the default output path ends in D88, so we shouldn't do that for the boot sector
+    # (it's not actually an image, just a chunk of one)
+    defaults = argp.get_default_values()
+    if options.output_path == defaults.output_path:
+        dump_boot_sector(args[0])
+    else:
+        dump_boot_sector(args[0], options.output_path)
 elif options.mode == '1d':
     change_disk_type_byte(args[0], options.output_path, DiskType.DiskType_1D)
 elif options.mode == '1dd':
