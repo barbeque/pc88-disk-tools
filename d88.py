@@ -2,6 +2,7 @@ from struct import unpack, calcsize, Struct
 from enum import IntEnum
 from optparse import OptionParser
 import sys
+import os
 import array
 
 # D88 header:
@@ -21,7 +22,7 @@ d88_header_unpack = Struct(d88_header_fmt).unpack_from
 #	BYTE density, del, stat;
 #	BYTE rsrv[5];
 #	WORD size;
-sector_header_fmt = '<BBBBsBBB5sI'
+sector_header_fmt = '<BBBBhBBB5sh'
 sector_header_len = calcsize(sector_header_fmt)
 sector_header_unpack = Struct(sector_header_fmt).unpack_from
 
@@ -103,6 +104,20 @@ def get_info(d88_path):
 
             i += 1
 
+        # try to fingerprint the boot sector
+        f.seek(actual_tracks[0])
+        raw = f.read(sector_header_len)
+        track_header = sector_header_unpack(raw)
+        (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
+        boot_sector_data = f.read(sector_size_to_bytes(sector_size))  # this seems to be off by one?
+        print('Cylinder', c, 'Head', h, 'Sector', r) 
+        print('Sector size (in bytes):', sector_size_to_bytes(sector_size))
+        print(boot_sector_data[:10])
+        # PC-8801: load 256 bytes into $c000 to $cfff, execute them
+        # X1: https://boukichi.github.io/HuDisk/HuBASIC_Format.html
+        # PC-6001: RXR or SYS or IPL???
+        if boot_sector_data[:3] == b'SYS' or boot_sector_data[:3] == b'RXR' or boot_sector_data[:3] == b'IPL':
+            print('Potentially NEC PC-6001/PC-6601')
     
 # Figure out what mode to be in
 argp = OptionParser()
