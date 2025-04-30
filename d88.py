@@ -57,6 +57,7 @@ def get_info(d88_path):
     """
     Print out info on a disk image to the console
     """
+    file_size = os.path.getsize(d88_path)
     with open(d88_path, 'rb') as f:
         raw = f.read(d88_header_len)
         d88_header = d88_header_unpack(raw)
@@ -91,6 +92,10 @@ def get_info(d88_path):
         i = 0
         for track_origin in actual_tracks:
             print('Track #', i)
+
+            if track_origin > file_size:
+                print('WARNING: Track #', i, 'has illegal offset off the end of the disk (offset=', track_origin, 'disk_size=', file_size, '). This may not be a D88 image file!')
+                continue
 
             f.seek(track_origin)
             raw = f.read(sector_header_len)
