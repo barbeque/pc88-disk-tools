@@ -87,6 +87,10 @@ def get_info(d88_path):
             print('\tWARNING: unknown type')
 
         print('Size:', size)
+        print('File size:', file_size)
+
+        if size != file_size:
+            print('WARNING: actual file size and the size claimed by the d88 header do not match. This might be a corrupt image, or not a d88 at all. Proceed with caution.')
 
         # i suspect it goes TRK - SEC and track headers are the same
         i = 0
