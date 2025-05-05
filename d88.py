@@ -16,7 +16,7 @@ d88_header_fmt = '<17s9sBB1i'
 d88_header_len = calcsize(d88_header_fmt)
 d88_header_unpack = Struct(d88_header_fmt).unpack_from
 
-# D88 track header:
+# D88 sector header:
 #	BYTE c, h, r, sector_size;
 #	WORD nsec;
 #	BYTE density, del, stat;
@@ -25,6 +25,8 @@ d88_header_unpack = Struct(d88_header_fmt).unpack_from
 sector_header_fmt = '<BBBBhBBB5sh'
 sector_header_len = calcsize(sector_header_fmt)
 sector_header_unpack = Struct(sector_header_fmt).unpack_from
+
+# length should be 0x10
 
 class DiskType(IntEnum):
     DiskType_2D = 0x00
@@ -92,7 +94,7 @@ def get_info(d88_path):
         if size != file_size:
             print('WARNING: actual file size and the size claimed by the d88 header do not match. This might be a corrupt image, or not a d88 at all. Proceed with caution.')
 
-        # i suspect it goes TRK - SEC and track headers are the same
+        # there are no 'track headers,' tracks are just a collection of sectors one after the other
         i = 0
         for track_origin in actual_tracks:
             print('Track #', i)
@@ -107,11 +109,13 @@ def get_info(d88_path):
             #print track_header
             (c, h, r, sector_size, nsec, density, _del, stat, rsrv, size) = track_header
             print('Cylinder', c, 'Head', h, 'Sector', r, 'Offset in file', track_origin)
-            print('Sector size (in bytes):', sector_size_to_bytes(sector_size))
+            sector_size_bytes = sector_size_to_bytes(sector_size)
+            print('Sector size (in bytes):', sector_size_bytes)
+            print('Number of sectors:', nsec)
             print('Density:', density_to_string(density))
-            #break # FIXME
 
-            # seems like there's about enough room for sectors * sector_size between track headers
+            # the mystery is solved
+            #print('I think next track offset is at:', (track_origin + (nsec * sector_size_bytes) + (nsec * sector_header_len)))
 
             i += 1
 
