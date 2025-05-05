@@ -171,6 +171,8 @@ argp.add_option('-d', '--1dd', action='store_const', dest='mode', const='1dd', h
 argp.add_option('-r', '--rename', help='Rename the image friendly name to something else')
 argp.add_option('-o', '--output', dest='output_path', help='Where the output of the process (modified disk, boot sector, etc) will be written to', default='output.d88')
 
+argp.add_option('-v', '--verbose', action='store_const', dest='verbose', const=True, default=False, help='Express more information in the console about the operation of the tool')
+
 if len(sys.argv) < 2:
     argp.print_help()
     sys.exit(1)
@@ -213,7 +215,7 @@ def rename_disk_image(d88_path, new_name, output_path):
         with open(output_path, 'wb') as f:
             f.write(image_data)
 
-def convert_to_img(d88_path, output_img_path = 'output.img'):
+def convert_to_img(d88_path, verbose, output_img_path = 'output.img'):
     file_size = os.path.getsize(d88_path)
 
     output = open(output_img_path, 'wb')
@@ -227,11 +229,14 @@ def convert_to_img(d88_path, output_img_path = 'output.img'):
         tracks.fromfile(f, 164) # trkptr structure
         tracks = tracks.tolist()
         actual_tracks = list(filter(lambda x: x > 0, tracks))
+
+        if verbose:
+            print(f'Flattening {d88_path} ({len(actual_tracks)} track(s)), saving as {output_img_path}...')
         
         # there are no 'track headers,' tracks are just a collection of sectors one after the other
         i = 0
         for track_origin in actual_tracks:
-            print('Track #', i, 'Origin:', track_origin)
+            # print('Track #', i, 'Origin:', track_origin)
 
             if track_origin > file_size:
                 print('WARNING: Track #', i, 'has illegal offset off the end of the disk (offset=', track_origin, 'disk_size=', file_size, '). This may not be a D88 image file!')
@@ -249,8 +254,14 @@ def convert_to_img(d88_path, output_img_path = 'output.img'):
             # the track and start reading them all out
             f.seek(track_origin)
 
+            if(verbose):
+                print('Track', i, 'offset in new file:', output.tell())
+
             # read all sectors for this track
             for sector_index in range(nsec):
+                if(verbose):
+                    print('  Sector', i, 'offset in new file:', output.tell())
+
                 sector_header_raw = f.read(sector_header_len)
                 sector_header_data = sector_header_unpack(raw)
                 # TODO: Detect changes in density, sector_size, nsec, etc from the other tracks
@@ -265,6 +276,8 @@ def convert_to_img(d88_path, output_img_path = 'output.img'):
                 #print('Current offset:', f.tell(), 'Next track at:', actual_tracks[i+1])
                 assert(f.tell() == actual_tracks[i+1])
 
+            # TODO: it would be nice to have a 'verbose' option here that prints out the offsets of tracks and specific sectors inside the resulting file
+
             i += 1
 
     output.close()
@@ -274,9 +287,9 @@ if options.rename:
 elif options.mode == 'flatten':
     defaults = argp.get_default_values()
     if options.output_path == defaults.output_path:
-        convert_to_img(args[0])
+        convert_to_img(args[0], options.verbose)
     else:
-        convert_to_img(args[0], options.output_path)
+        convert_to_img(args[0], options.verbose, options.output_path)
 elif options.mode == 'dump-boot-sector':
     # the default output path ends in D88, so we shouldn't do that for the boot sector
     # (it's not actually an image, just a chunk of one)
