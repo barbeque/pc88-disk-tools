@@ -95,12 +95,13 @@ def get_info(d88_path):
             print('WARNING: actual file size and the size claimed by the d88 header do not match. This might be a corrupt image, or not a d88 at all. Proceed with caution.')
 
         # there are no 'track headers,' tracks are just a collection of sectors one after the other
+        # and usually it goes "side 0 side 1 side 0 side 1 side 0 side 1 ..." for double-sided
         i = 0
         for track_origin in actual_tracks:
-            print('Track #', i)
+            print('Track pointer index:', i)
 
             if track_origin > file_size:
-                print('WARNING: Track #', i, 'has illegal offset off the end of the disk (offset=', track_origin, 'disk_size=', file_size, '). This may not be a D88 image file!')
+                print('WARNING: Track index:', i, 'has illegal offset off the end of the disk (offset=', track_origin, 'disk_size=', file_size, '). This may not be a D88 image file!')
                 continue
 
             f.seek(track_origin)
