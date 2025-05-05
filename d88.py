@@ -276,8 +276,6 @@ def convert_to_img(d88_path, verbose, output_img_path = 'output.img'):
                 #print('Current offset:', f.tell(), 'Next track at:', actual_tracks[i+1])
                 assert(f.tell() == actual_tracks[i+1])
 
-            # TODO: it would be nice to have a 'verbose' option here that prints out the offsets of tracks and specific sectors inside the resulting file
-
             i += 1
 
     output.close()
