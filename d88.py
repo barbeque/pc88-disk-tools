@@ -75,6 +75,8 @@ def get_info(d88_path):
         print('Tracks actually in use:', len(actual_tracks))
         print('Type:', hex(type))
 
+        is_double_sided = True
+
         if type == DiskType.DiskType_2D:
             print('\t2D')
         elif type == DiskType.DiskType_2DD:
@@ -82,11 +84,16 @@ def get_info(d88_path):
         elif type == DiskType.DiskType_2HD:
             print('\t2HD')
         elif type == DiskType.DiskType_1D:
+            is_double_sided = False
             print('\t1D')
         elif type == DiskType.DiskType_1DD:
+            is_double_sided = False
             print('\t1DD')
         else:
             print('\tWARNING: unknown type')
+
+        if is_double_sided:
+            print('Tracks per side (guessed:)', len(actual_tracks) // 2)
 
         print('Size:', size)
         print('File size:', file_size)
