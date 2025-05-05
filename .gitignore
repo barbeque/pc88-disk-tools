@@ -1,4 +1,5 @@
 *.d88
+*.img
 *.asm
 boot-sector.bin
 *.1dd

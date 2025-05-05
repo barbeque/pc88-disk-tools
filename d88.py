@@ -164,6 +164,7 @@ def dump_boot_sector(d88_path, output_path = 'boot-sector.bin'):
 argp = OptionParser()
 
 argp.add_option('-i', '--get-info', action='store_const', dest='mode', default='get-info', const='get-info', help="Print info on the disk image to the console")
+argp.add_option('-f', '--flatten', action='store_const', dest='mode', const='flatten', help="Convert the d88 disk image into a flat, raw IMG sector image")
 argp.add_option('-b', '--boot-dump', action='store_const', dest='mode', const='dump-boot-sector', help='Analyze the boot sector and extract it to a file')
 argp.add_option('-1', '--1d', action='store_const', dest='mode', const='1d', help='Change disk type byte to indicate a single-sided, low density (1D) disk image')
 argp.add_option('-d', '--1dd', action='store_const', dest='mode', const='1dd', help='Change disk type byte to indicate a single-sided, double density (1DD) disk image')
@@ -212,8 +213,70 @@ def rename_disk_image(d88_path, new_name, output_path):
         with open(output_path, 'wb') as f:
             f.write(image_data)
 
+def convert_to_img(d88_path, output_img_path = 'output.img'):
+    file_size = os.path.getsize(d88_path)
+
+    output = open(output_img_path, 'wb')
+
+    with open(d88_path, 'rb') as f:
+        raw = f.read(d88_header_len)
+        d88_header = d88_header_unpack(raw)
+        (title, rsrv, protect, type, size) = d88_header
+
+        tracks = array.array('I')
+        tracks.fromfile(f, 164) # trkptr structure
+        tracks = tracks.tolist()
+        actual_tracks = list(filter(lambda x: x > 0, tracks))
+        
+        # there are no 'track headers,' tracks are just a collection of sectors one after the other
+        i = 0
+        for track_origin in actual_tracks:
+            print('Track #', i, 'Origin:', track_origin)
+
+            if track_origin > file_size:
+                print('WARNING: Track #', i, 'has illegal offset off the end of the disk (offset=', track_origin, 'disk_size=', file_size, '). This may not be a D88 image file!')
+                continue
+
+            f.seek(track_origin)
+            raw = f.read(sector_header_len)
+            sector_header = sector_header_unpack(raw)
+            #print track_header
+            (c, h, r, sector_size_enum, nsec, density, _del, stat, rsrv, size) = sector_header
+            sector_size_in_bytes = sector_size_to_bytes(sector_size_enum)
+
+            # it's a little weird that "number of sectors" is stored in the sector header,
+            # but now that we know how many sectors to expect we can rewind to the start of
+            # the track and start reading them all out
+            f.seek(track_origin)
+
+            # read all sectors for this track
+            for sector_index in range(nsec):
+                sector_header_raw = f.read(sector_header_len)
+                sector_header_data = sector_header_unpack(raw)
+                # TODO: Detect changes in density, sector_size, nsec, etc from the other tracks
+                # now we read the header, so read the rest of the sector
+                #print('Reading sector of size', sector_size_in_bytes)
+                sector_contents = f.read(sector_size_in_bytes)
+                # write it to the output
+                output.write(sector_contents)
+
+            if i + 1 < len(actual_tracks):
+                # PARANOID: check to make sure our current offset is lined up with the head of the next track in line
+                #print('Current offset:', f.tell(), 'Next track at:', actual_tracks[i+1])
+                assert(f.tell() == actual_tracks[i+1])
+
+            i += 1
+
+    output.close()
+
 if options.rename:
     rename_disk_image(args[0], options.rename, options.output_path)
+elif options.mode == 'flatten':
+    defaults = argp.get_default_values()
+    if options.output_path == defaults.output_path:
+        convert_to_img(args[0])
+    else:
+        convert_to_img(args[0], options.output_path)
 elif options.mode == 'dump-boot-sector':
     # the default output path ends in D88, so we shouldn't do that for the boot sector
     # (it's not actually an image, just a chunk of one)
