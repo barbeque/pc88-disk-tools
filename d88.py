@@ -288,6 +288,9 @@ def convert_to_img(d88_path, verbose, output_img_path = 'output.img'):
 
     output.close()
 
+    if verbose:
+        print(f'Wrote {len(actual_tracks)} track(s) to "{output_img_path}".')
+
 if options.rename:
     rename_disk_image(args[0], options.rename, options.output_path)
 elif options.mode == 'flatten':
