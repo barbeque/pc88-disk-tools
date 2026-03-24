@@ -23,7 +23,7 @@ def egg_extract_d88(*, dmpname):
         d88 = dmp[i : i + 3 * 1024 * 1024]
         sz = int.from_bytes(d88[0x1C:0x20] + b"\0", "little")
         if (
-            sz < len(d88)
+            sz <= len(d88)
             and sz > 672
             and d88[int.from_bytes(d88[0x20:0x24], "little") :][:3] == b"\0\0\1"
             and set(
